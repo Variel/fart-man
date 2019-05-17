@@ -11,7 +11,7 @@ canvas.height = window.innerHeight;
 var fooDensity = Math.round(window.innerWidth * window.innerHeight / 75000);
 var fooFullTime = 20;
 
-var potatoDensity = Math.round(Math.logBase(4, window.innerWidth * window.innerHeight / 100));
+var potatoDensity = Math.round(logBase(4, window.innerWidth * window.innerHeight / 100));
 var potatoFullTime = 7;
 
 window.addEventListener('resize',
@@ -19,7 +19,7 @@ window.addEventListener('resize',
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
     fooDensity = Math.round(window.innerWidth * window.innerHeight / 75000);
-    var potatoDensity = Math.round(Math.logBase(4, window.innerWidth * window.innerHeight / 100));
+    var potatoDensity = Math.round(logBase(4, window.innerWidth * window.innerHeight / 100));
   });
 
 var power = 70;
