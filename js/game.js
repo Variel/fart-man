@@ -1,20 +1,25 @@
-﻿var canvas = document.getElementById('game-view');
+﻿function logBase(base, value) {
+  return Math.log(value) / Math.log(base);
+}
+
+var canvas = document.getElementById('game-view');
 var ctx = canvas.getContext('2d');
 
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-var fooDensity = Math.floor(window.innerWidth * window.innerHeight / 75000);
+var fooDensity = Math.round(window.innerWidth * window.innerHeight / 75000);
 var fooFullTime = 20;
 
-var potatoDensity = Math.floor(Math.log10(window.innerWidth * window.innerHeight / 100));
+var potatoDensity = Math.round(Math.logBase(4, window.innerWidth * window.innerHeight / 100));
 var potatoFullTime = 7;
 
 window.addEventListener('resize',
   function() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    fooDensity = Math.floor(window.innerWidth * window.innerHeight / 75000);
+    fooDensity = Math.round(window.innerWidth * window.innerHeight / 75000);
+    var potatoDensity = Math.round(Math.logBase(4, window.innerWidth * window.innerHeight / 100));
   });
 
 var power = 70;
