@@ -4,10 +4,17 @@ var ctx = canvas.getContext('2d');
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
+var fooDensity = Math.floor(window.innerWidth * window.innerHeight / 75000);
+var fooFullTime = 20;
+
+var potatoDensity = Math.floor(Math.log10(window.innerWidth * window.innerHeight / 100));
+var potatoFullTime = 7;
+
 window.addEventListener('resize',
   function() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
+    fooDensity = Math.floor(window.innerWidth * window.innerHeight / 75000);
   });
 
 var power = 70;
@@ -15,29 +22,46 @@ var power = 70;
 window.addEventListener('keydown',
   function (e) {
     if (e.keyCode === 32) {
-
-      player.velocity.y = Math.sin(player.rotation - Math.PI / 2) * power;
-      player.velocity.x = Math.cos(player.rotation - Math.PI / 2) * power;
-
-      if (player.rotation <= 0) {
-        player.velocity.rotation = -0.55;
-      } else {
-        player.velocity.rotation = 0.55;
-      }
+      clickButton();
     }
   });
 
 window.addEventListener('touchstart',
   function() {
-    player.velocity.y = Math.sin(player.rotation - Math.PI / 2) * power;
-    player.velocity.x = Math.cos(player.rotation - Math.PI / 2) * power;
-
-    if (player.rotation <= 0) {
-      player.velocity.rotation = -0.55;
-    } else {
-      player.velocity.rotation = 0.55;
-    }
+    clickButton();
   });
+
+
+function clickButton() {
+  switch(gameState) {
+    case 'start':
+      gameStart();
+      break;
+    case 'play':
+      if (fartCount > 0) {
+        fartCount --;
+
+        player.velocity.y = Math.sin(player.rotation - Math.PI / 2) * power;
+        player.velocity.x = Math.cos(player.rotation - Math.PI / 2) * power;
+
+        if (player.rotation <= 0) {
+          player.velocity.rotation = -0.55;
+        } else {
+          player.velocity.rotation = 0.55;
+        }
+      }
+      break;
+    case 'over':
+      gameStart();
+      break;
+  } 
+}
+
+
+
+/********************************/
+/** Viewport / GameObject Type **/
+/********************************/
 
 var camera = {
   x: 0,
@@ -107,25 +131,37 @@ GameObject.prototype.update = function(sec) {
     this.rotation += Math.PI * 2;
 };
 
+/********************************/
+/**         E   N   D          **/
+/********************************/
+
+
+
+
 var player = new GameObject();
-player.position = {
-  x: window.innerWidth / 2,
-  y: window.innerHeight / 2,
-};
-player.velocity = {
-  x: 0,
-  y: 0,
-  rotation: 0
-};
 
 var fooParent = new GameObject();
 fooParent.gravity = 0;
 var fooList = [];
 
+var potatoParent = new GameObject();
+potatoParent.gravity = 0;
+var potatoList = [];
+
+var fart = new GameObject();
+
 function initialize() {
   loadItem('./img/player.png', player, 'image');
   loadItem('./img/foo.png', fooParent, 'image');
+  loadItem('./img/potato.png', potatoParent, 'image');
+  loadItem('./img/fart.png', fart, 'image');
 }
+
+
+
+/********************************/
+/**       L O A D I N G        **/
+/********************************/
 
 var loadCount = 0;
 var loadedCount = 0;
@@ -152,8 +188,18 @@ function loadFinished() {
     100);
 }
 
+/********************************/
+/**         E   N   D          **/
+/********************************/
+
+
+
+/********************************/
+/**        T I M I N G         **/
+/********************************/
+
 var lastTime;
-var speed = 15;
+var gameSpeed = 15;
 
 function getElapsedTime() {
   if (!lastTime) {
@@ -162,55 +208,69 @@ function getElapsedTime() {
 
   var now = new Date();
 
-  var elapsed = (now - lastTime) * speed;
+  var elapsed = (now - lastTime);
   lastTime = now;
 
   return {
-    sec: elapsed / 1000,
-    ms: elapsed
+    sec: elapsed * gameSpeed / 1000,
+    ms: elapsed * gameSpeed,
+    absSec: elapsed / 1000,
+    absMs: elapsed
   };
 }
 
+/********************************/
+/**         E   N   D          **/
+/********************************/
 
-function gameLoop() {
-  var viewport = new Viewport();
 
-  setInterval(function() {
-    var elapsed = getElapsedTime();
+var gameState = 'start';
+var gameStartTime = 0;
 
-    player.update(elapsed.sec);
 
-    if (player.position.x > canvas.width)
-      player.position.x -= canvas.width;
-    if (player.position.x < 0)
-      player.position.x += canvas.width;
+function gameStart() {
+  player.position = {
+    x: window.innerWidth / 2,
+    y: window.innerHeight / 2,
+  };
+  player.rotation = 0;
+  player.velocity = {
+    x: 0,
+    y: 0,
+    rotation: 0
+  };
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  fooList = [];
+  fooTimeAccumulate = 0;
 
-    viewport.draw(player);
+  potatoList = [];
+  potatoTimeAccumulate = 0;
 
-    for (var i in fooList) {
-      if (fooList[i] && fooList.hasOwnProperty(i)) {
-        var foo = fooList[i];
-        
-        foo.update(elapsed.sec);
-        viewport.draw(foo);
+  fartCount = 8;
 
-        var dist = Math.sqrt(Math.pow(foo.position.x - player.position.x, 2) +
-          Math.pow(foo.position.y - player.position.y, 2));
+  gameStartTime = new Date;
 
-        if (dist < 30) {
-          fooList[i] = null;
-          console.error('bump!');
-        }
-      }
-    }
-
-  }, 16);
+  gameState = 'play';
 }
 
+
+function renderStartScreen() {
+
+}
+
+var fartCount = 8;
 var fooIndex = 0;
-setInterval(function() {
+var fooTimeAccumulate = 0;
+var potatoIndex = 0;
+var potatoTimeAccumulate = 0;
+function renderPlayScreen(viewport, elapsed) {
+  fooTimeAccumulate += elapsed.absMs;
+  potatoTimeAccumulate += elapsed.absMs;
+
+  if (fooTimeAccumulate > fooFullTime * 1000 / fooDensity) {
+  
+    fooTimeAccumulate = 0;
+
     var foo = fooList[fooIndex];
     if (!foo) {
       fooList[fooIndex] = fooParent.clone();
@@ -220,8 +280,135 @@ setInterval(function() {
     foo.position.x = Math.random() * canvas.width;
     foo.position.y = Math.random() * canvas.height;
 
-    fooIndex = (fooIndex + 1) % 3;
-  },
-  5000);
+    fooIndex = Math.floor(fooIndex + 1) % fooDensity;
+  }
+  
+  if (potatoTimeAccumulate > potatoFullTime * 1000 / potatoDensity) {
+  
+    potatoTimeAccumulate = 0;
+
+    var potato = potatoList[potatoIndex];
+    if (!potato) {
+      potatoList[potatoIndex] = potatoParent.clone();
+      potato = potatoList[potatoIndex];
+    }
+
+    potato.position.x = Math.random() * canvas.width;
+    potato.position.y = Math.random() * canvas.height;
+
+    potatoIndex = Math.floor(potatoIndex + 1) % potatoDensity;
+  }
+
+  player.update(elapsed.sec);
+
+  if (player.position.x > canvas.width)
+    player.position.x -= canvas.width;
+  if (player.position.x < 0)
+    player.position.x += canvas.width;
+  if (player.position.y > canvas.height + 200) {
+    gameState = 'over';
+  }
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  viewport.draw(player);
+
+  for (var i in fooList) {
+    if (fooList[i] && fooList.hasOwnProperty(i)) {
+      var foo = fooList[i];
+      
+      foo.update(elapsed.sec);
+      viewport.draw(foo);
+
+      var dist = Math.sqrt(
+        Math.pow(foo.position.x - player.position.x, 2) +
+        Math.pow(foo.position.y - player.position.y, 2));
+
+      if (dist < 30) {
+        fooList[i] = null;
+        gameState = 'over';
+      }
+    }
+  }
+  
+  for (var i in potatoList) {
+    if (potatoList[i] && potatoList.hasOwnProperty(i)) {
+      var potato = potatoList[i];
+      
+      potato.update(elapsed.sec);
+      viewport.draw(potato);
+
+      var dist = Math.sqrt(
+        Math.pow(potato.position.x - player.position.x, 2) +
+        Math.pow(potato.position.y - player.position.y, 2));
+
+      if (dist < 30) {
+        potatoList[i] = null;
+        fartCount += 5;
+      }
+    }
+  }
+
+  var fartStartOffsetX = canvas.width / 2 - (fartCount * 19) / 2;
+  for (var i = 0; i < fartCount; i ++) {
+    var offset = fartStartOffsetX + i * 19 + 8.9;
+    ctx.translate(offset, 90);
+    ctx.drawImage(fart.image, -fart.image.width / 2, -fart.image.height / 2, fart.image.width, fart.image.height);
+    ctx.translate(-offset, -90);
+  }
+
+  ctx.font = '30px Arial';
+
+  var totalGameTime = new Date - gameStartTime;
+  var timeText = durationText(totalGameTime);
+  var width = ctx.measureText(timeText).width;
+
+  ctx.fillText(timeText, canvas.width / 2 - width / 2, 60);
+}
+
+function renderOverScreen() {
+
+}
+
+
+function gameLoop() {
+  var viewport = new Viewport();
+
+  setInterval(function() {
+    var elapsed = getElapsedTime();
+
+    switch(gameState) {
+      case 'start':
+        renderStartScreen();
+        break;
+      case 'play':
+        renderPlayScreen(viewport, elapsed);
+        break;
+      case 'over':
+        renderOverScreen();
+        break;
+    }
+  }, 16);
+}
+
+function durationText(duration) {
+  var d = moment.duration(duration);
+  var str = '.' + String(Math.floor(d.milliseconds() / 10));
+
+  var sec = d.seconds();
+  str = sec + str;
+  if (sec < 10)
+    str = '0' + str;
+
+  var min = d.minutes();
+  if (d.asMinutes() >= 1) {
+    str = min + str;
+    if (min < 10) 
+      str = '0' + str;
+  }
+
+  return str;
+}
+
 
 initialize();
